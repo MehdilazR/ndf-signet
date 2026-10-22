@@ -638,7 +638,8 @@
     if (S.waiting) {
       if (root.getElementById('login-frame')) return; // ne pas recharger la connexion en cours
       root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column">' +
-        '<div class="wrap" style="padding-bottom:10px;width:100%">' + header('Connexion à Boond', 'Connecte-toi : NDF Express s\'ouvrira juste après.') + '</div>' +
+        '<div class="wrap" style="padding-bottom:10px;width:100%">' + header('Connexion à Boond', 'Connecte-toi : NDF Express s\'ouvrira juste après.') +
+          '<p class="small" style="margin:6px 0 0">Avec ton e-mail et ton mot de passe. Les boutons Google / Microsoft ne marchent pas ici : dans ce cas, ferme (✕), connecte-toi sur Boond, puis relance le signet.</p></div>' +
         '<iframe id="login-frame" src="/login" title="Connexion à Boond" style="flex:1;width:100%;border:0;border-top:1px solid var(--line);background:#fff"></iframe></div>';
       return;
     }
