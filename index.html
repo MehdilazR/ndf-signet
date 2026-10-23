@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>NDF Express</title>
+<meta name="theme-color" content="#EEF0FF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0E12" media="(prefers-color-scheme: dark)">
+<style>
+:root {
+  --bg: #EEF0FF; --card: #FFFFFF; --line: #E1E3EE; --text: #14151A; --muted: #5E6378;
+  --accent: #3B4BDB; --on-accent: #FFFFFF; --tint: #E3E7FF; --on-tint: #1B238F;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0D0E12; --card: #17191F; --line: #262938; --text: #ECEDF2; --muted: #9A9EAB;
+    --accent: #9AA4FF; --on-accent: #0C0F24; --tint: #242A55; --on-tint: #DDE1FF; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+main { width: 100%; max-width: 400px; display: grid; gap: 22px; }
+.brand { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.brand svg { width: 76px; height: 76px; filter: drop-shadow(0 14px 24px rgba(59, 75, 219, .28)); }
+h1 { margin: 0; font-size: 30px; line-height: 1.1; letter-spacing: -.5px; }
+.tag { margin: 0; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 20px; display: grid; gap: 16px; }
+.card h2 { margin: 0; font-size: 18px; letter-spacing: -.2px; }
+ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; }
+li::before { content: counter(s); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 15px; background: var(--tint); color: var(--on-tint); }
+li b { font-weight: 600; }
+.go { display: block; text-align: center; text-decoration: none; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 17px; padding: 17px; border-radius: 16px; }
+.go:active { transform: scale(.98); }
+.go:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.foot { text-align: center; color: var(--muted); font-size: 13px; margin: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  main > * { animation: up .35s cubic-bezier(.2, .7, .2, 1) both; }
+  main > *:nth-child(2) { animation-delay: .06s; } main > *:nth-child(3) { animation-delay: .12s; }
+  @keyframes up { from { opacity: 0; transform: translateY(12px); } }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <rect width="40" height="40" rx="11" fill="#3B4BDB"/>
+      <path d="M6 17h5M8 22h3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+      <path d="M16 9h13.5a1.5 1.5 0 0 1 1.5 1.5V31l-2.6-2-2.6 2-2.6-2-2.6 2-2.6-2-2.5 2V10.5A1.5 1.5 0 0 1 16 9z" fill="#fff"/>
+      <path d="M18.6 19.6l3 3 5.6-5.8" fill="none" stroke="#3B4BDB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>NDF Express</h1>
+    <p class="tag">Tes notes de frais Boond, en lot.</p>
+  </div>
+
+  <section class="card" aria-labelledby="t">
+    <h2 id="t">NDF Express s'ouvre sur Boond</h2>
+    <ol>
+      <li><span>Connecte-toi à Boond, comme d'habitude.</span></li>
+      <li><span>Touche à nouveau le signet <b>NDF Express</b> : l'app s'ouvre.</span></li>
+    </ol>
+    <a class="go" href="https://ui.boondmanager.com/login">Se connecter à Boond</a>
+  </section>
+
+  <p class="foot">Outil interne, non affilié à BoondManager.</p>
+</main>
+</body>
+</html>

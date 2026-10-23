@@ -9,9 +9,15 @@
 
   var BASE = 'https://ui.boondmanager.com';
   if (location.origin !== BASE) {
-    if (confirm('NDF Express fonctionne sur Boond.\nOuvrir Boond maintenant ? Touche ensuite à nouveau le signet.')) {
-      location.href = BASE + '/dashboard';
-    }
+    // Page d'accueil NDF Express si elle est en ligne, sinon directement la connexion Boond.
+    var WELCOME = 'https://mehdilazr.github.io/ndf-signet/';
+    var gone = false;
+    var go = function (url) { if (!gone) { gone = true; location.href = url; } };
+    setTimeout(function () { go(BASE + '/login'); }, 2500);
+    try {
+      fetch(WELCOME, { method: 'HEAD', cache: 'no-store' })
+        .then(function (r) { go(r.ok ? WELCOME : BASE + '/login'); }, function () { go(BASE + '/login'); });
+    } catch (e) { go(BASE + '/login'); }
     return;
   }
   if (window.__ndfExpress) { window.__ndfExpress.show(); return; }
@@ -369,7 +375,10 @@
         prefs.type = t ? t.reference : null;
       }
       S.items.forEach(evaluate);
-    } catch (e) { S.error = e.message; }
+    } catch (e) {
+      if (e.status === 401) { S.busy = false; waitForLogin(); return; }
+      S.error = e.message;
+    }
     S.busy = false; render();
   }
 
@@ -457,9 +466,30 @@
   var host = document.createElement('div');
   host.id = 'ndf-express-host';
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;';
+  var waitTimer = null;
+  function waitForLogin() {
+    S.waiting = true; S.error = null; render();
+    if (waitTimer) return;
+    waitTimer = setInterval(function () {
+      if (csrfToken() && location.pathname.indexOf('/login') !== 0) {
+        clearInterval(waitTimer); waitTimer = null;
+        S.waiting = false; host.style.display = ''; refresh();
+      }
+    }, 1500);
+  }
   var root = host.attachShadow({ mode: 'open' });
   document.body.appendChild(host);
 
+  var WELCOME_CSS =
+    '.welcome-page{display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px);background:var(--bg)}' +
+    '.welcome-page main{width:100%;max-width:400px;display:grid;gap:22px}' +
+    '.w-brand{display:grid;justify-items:center;gap:10px;text-align:center}.w-brand svg{width:72px;height:72px;filter:drop-shadow(0 14px 24px rgba(59,75,219,.28))}' +
+    '.w-brand h1{margin:0;font-size:28px;letter-spacing:-.5px}.w-brand p{margin:0;color:var(--muted)}' +
+    '.w-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;display:grid;gap:16px}.w-card h2{margin:0;font-size:18px}' +
+    '.w-card ol{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:s}' +
+    '.w-card li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start}' +
+    '.w-card li::before{content:counter(s);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--tint);color:var(--on-tint)}' +
+    '.w-go{border:0;border-radius:16px;background:var(--accent);color:var(--on-accent);font:600 17px/1 inherit;padding:17px;cursor:pointer}';
   var CSS = [
     ':host{all:initial}',
     '*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}',
@@ -610,6 +640,19 @@
   }
 
   function render() {
+    if (S.waiting) {
+      root.innerHTML = '<style>' + CSS + WELCOME_CSS + '</style><div class="app welcome-page"><main>' +
+        '<div class="w-brand"><svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#3B4BDB"/>' +
+        '<path d="M6 17h5M8 22h3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>' +
+        '<path d="M16 9h13.5a1.5 1.5 0 0 1 1.5 1.5V31l-2.6-2-2.6 2-2.6-2-2.6 2-2.6-2-2.5 2V10.5A1.5 1.5 0 0 1 16 9z" fill="#fff"/>' +
+        '<path d="M18.6 19.6l3 3 5.6-5.8" fill="none" stroke="#3B4BDB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<h1>NDF Express</h1><p>Tes notes de frais Boond, en lot.</p></div>' +
+        '<section class="w-card"><h2>Connecte-toi d\'abord à Boond</h2><ol>' +
+        '<li><span>Connecte-toi comme d\'habitude (e-mail et mot de passe, Google ou Microsoft).</span></li>' +
+        '<li><span>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</span></li></ol>' +
+        '<button class="w-go" data-act="close">OK, je me connecte</button></section></main></div>';
+      return;
+    }
     var view = S.showDiag ? viewDiag()
       : S.screen === 'processing' ? viewProcessing()
       : S.screen === 'review' ? viewReview()
@@ -629,7 +672,7 @@
     var id = parseInt(el.getAttribute('data-id'), 10);
     var item = S.items.filter(function (i) { return i.id === id; })[0];
     switch (act) {
-      case 'close': host.style.display = 'none'; break;
+      case 'close': host.style.display = 'none'; break; // l'attente de connexion continue en arrière-plan
       case 'diag': S.showDiag = true; render(); break;
       case 'hide-diag': S.showDiag = false; render(); break;
       case 'copy':
@@ -679,16 +722,13 @@
   window.__ndfExpress = {
     show: function () {
       host.style.display = '';
+      if (!csrfToken() || location.pathname.indexOf('/login') === 0) { waitForLogin(); return; }
+      if (S.waiting) { if (waitTimer) { clearInterval(waitTimer); waitTimer = null; } S.waiting = false; }
       // Signet touché à nouveau après une connexion : on charge tout.
-      if (!S.user && csrfToken()) { S.error = null; refresh(); } else render();
+      if (!S.user) { S.error = null; refresh(); } else render();
     }
   };
 
-  render();
-  if (!csrfToken()) {
-    S.error = 'Tu n\'es pas connecté à Boond : ferme NDF Express (✕), connecte-toi, puis touche à nouveau le signet.';
-    render();
-  } else {
-    refresh();
-  }
+  if (!csrfToken() || location.pathname.indexOf('/login') === 0) waitForLogin();
+  else { render(); refresh(); }
 })();
