@@ -8,24 +8,10 @@
   'use strict';
 
   var BASE = 'https://ui.boondmanager.com';
-  function logo(size) {
-    return '<svg class="logo" width="' + size + '" height="' + size + '" viewBox="0 0 40 40" aria-hidden="true">' +
-      '<rect width="40" height="40" rx="11" fill="var(--accent)"/>' +
-      '<path d="M6 17h5M8 22h3" stroke="var(--on-accent)" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>' +
-      '<path d="M16 9h13.5a1.5 1.5 0 0 1 1.5 1.5V31l-2.6-2-2.6 2-2.6-2-2.6 2-2.6-2-2.5 2V10.5A1.5 1.5 0 0 1 16 9z" fill="var(--on-accent)"/>' +
-      '<path d="M18.6 19.6l3 3 5.6-5.8" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  }
-  function reduceMotion() { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; } }
-  function enter(el) {
-    if (!el || reduceMotion() || !el.animate) return;
-    var a = el.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' });
-    setTimeout(function () { try { a.finish(); } catch (e) {} }, 400); // jamais bloqué à mi-chemin
-  }
   var POPUP_CSS = ':host{all:initial}*{box-sizing:border-box}' +
     '.bg{--card:#fff;--text:#14151A;--muted:#686C78;--accent:#3B4BDB;--on-accent:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,12,20,.5);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
     '@media (prefers-color-scheme:dark){.bg{--card:#17191F;--text:#ECEDF2;--muted:#9A9EAB;--accent:#9AA4FF;--on-accent:#0C0F24}}' +
     '.card{width:100%;max-width:360px;background:var(--card);color:var(--text);border-radius:20px;padding:22px 20px 14px;display:grid;gap:10px;box-shadow:0 20px 50px rgba(0,0,0,.3)}' +
-    '.brand{display:flex;align-items:center;gap:10px;margin-bottom:2px}.brand span{font-size:13px;color:var(--muted);font-weight:600}' +
     '.t{font-size:19px;letter-spacing:-.2px}p{margin:0;color:var(--muted)}ol{margin:2px 0 4px;padding-left:20px;display:grid;gap:6px}' +
     '.go{border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font:600 16px/1 inherit;padding:15px;cursor:pointer}' +
     '.no{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:8px;cursor:pointer}';
@@ -34,12 +20,10 @@
     gate.style.cssText = 'position:fixed;inset:0;z-index:2147483647;';
     var groot = gate.attachShadow({ mode: 'open' });
     groot.innerHTML = '<style>' + POPUP_CSS + '</style><div class="bg"><div class="card">' +
-      '<div class="brand">' + logo(36) + '<span>NDF Express</span></div>' +
-      '<b class="t">Ouvre Boond d\'abord</b><p>NDF Express s\'ouvre sur Boond, une fois connecté.</p>' +
+      '<b class="t">NDF Express</b><p>NDF Express s\'ouvre sur Boond, une fois connecté.</p>' +
       '<ol><li>Touche <b>Ouvrir Boond</b> et connecte-toi.</li><li>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</li></ol>' +
       '<button class="go" id="go">Ouvrir Boond</button><button class="no" id="no">Annuler</button></div></div>';
     document.body.appendChild(gate);
-    enter(groot.querySelector('.card'));
     groot.getElementById('go').addEventListener('click', function () { location.href = BASE + '/dashboard'; });
     groot.getElementById('no').addEventListener('click', function () { gate.remove(); });
     return;
@@ -377,25 +361,12 @@
   async function refresh() {
     S.busy = true; S.error = null; render();
     try {
-      // Utilisateur mémorisé = la liste des notes part tout de suite ; vérification en parallèle.
-      var userP = S.user ? Promise.resolve(S.user) : currentUser();
-      var guess = S.user || prefs.user || await userP;
-      var listP = api('GET', '/resources/' + guess.id + '/expensesreports');
-      var real = await userP;
-      if (String(real.id) !== String(guess.id)) { listP.catch(function () {}); listP = api('GET', '/resources/' + real.id + '/expensesreports'); }
-      S.user = real; prefs.user = { id: real.id, name: real.name }; savePrefs();
-      var list = (await listP).data || [];
-      var idFor = function (term) {
-        var key = termKey(term);
-        for (var i = 0; i < list.length; i++) if (((list[i].attributes || {}).term || '').indexOf(key) === 0) return String(list[i].id);
-        return null;
-      };
-      var id = idFor(S.term), pid = idFor(addMonths(S.term, -1));
-      var both = await Promise.all([
-        id ? loadReport(id) : null,
-        pid ? loadReport(pid).catch(function (e) { if (e.status === 401) throw e; return null; }) : null
-      ]);
-      var current = both[0], previous = both[1];
+      if (!S.user) S.user = await currentUser();
+      var id = await findReportId(S.user.id, S.term);
+      var current = id ? await loadReport(id) : null;
+      var previous = null;
+      try { var pid = await findReportId(S.user.id, addMonths(S.term, -1)); previous = pid ? await loadReport(pid) : null; }
+      catch (e) { if (e.status === 401) throw e; }
       var reports = [current, previous].filter(Boolean);
       S.reportId = id; S.report = current; S.reportRefLabel = current ? reportRef(current) : null;
       S.imputations = imputationsOf(reports);
@@ -500,7 +471,7 @@
 
   // ------------------------------------------------------------------ interface
 
-  var FULL = 'position:fixed;inset:0;z-index:2147483647;max-width:100vw;overflow:hidden;';
+  var FULL = 'position:fixed;inset:0;z-index:2147483647;';
   var waitTimer = null;
   var reloadOnClose = false;
   var host = document.createElement('div');
@@ -517,23 +488,6 @@
     try { path = frame.contentWindow.location.pathname; } catch (e) {}
     return path.charAt(0) === '/' && path.indexOf('/login') !== 0;
   }
-  // Affiche la page de connexion dès que son formulaire est dessiné (évite l'écran blanc).
-  function revealLoginWhenReady() {
-    var started = Date.now();
-    (function check() {
-      var frame = root.getElementById('login-frame');
-      var cover = root.getElementById('login-loading');
-      if (!frame || !cover) return;
-      var ready = false;
-      try { ready = !!frame.contentDocument.querySelector('input[type="password"], input[type="email"], input[name="login"]'); } catch (e) {}
-      if (ready || Date.now() - started > 12000) {
-        frame.style.opacity = '1'; cover.style.opacity = '0';
-        setTimeout(function () { if (cover.parentNode) cover.parentNode.removeChild(cover); }, 260);
-        return;
-      }
-      setTimeout(check, 150);
-    })();
-  }
   function openApp() {
     if (waitTimer) { clearInterval(waitTimer); waitTimer = null; }
     S.waiting = false; S.error = null;
@@ -542,7 +496,6 @@
   function waitForLogin() {
     S.waiting = true; S.user = null; S.error = null; S.busy = false;
     host.style.cssText = FULL; render();
-    revealLoginWhenReady();
     if (waitTimer) return;
     waitTimer = setInterval(function () {
       if (!csrfToken()) return;
@@ -589,11 +542,6 @@
     '.edit{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap}.edit input{flex:1;min-width:120px;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}',
     '.done{text-align:center;padding-top:60px}.check{width:84px;height:84px;border-radius:50%;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}',
     'textarea{width:100%;height:300px;font:11px/1.4 ui-monospace,Menlo,monospace;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}',
-    '.welcome{display:flex;align-items:center;gap:12px}.welcome .logo{flex:none}.welcome b{display:block;font-size:20px;font-weight:600;letter-spacing:-.3px}.welcome span{display:block;font-size:13px;color:var(--muted)}',
-    '.sk{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--line) 0%,var(--bg) 50%,var(--line) 100%);background-size:200% 100%;animation:sh 1.1s linear infinite}@keyframes sh{to{background-position:-200% 0}}',
-    '.loading{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:14px;background:var(--bg);color:var(--muted);font-size:14px;transition:opacity .25s}',
-    '.loading .logo{animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{50%{transform:scale(.92);opacity:.75}}',
-    '@media (prefers-reduced-motion:reduce){.sk,.loading .logo{animation:none}}',
     '.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s .8s linear infinite;vertical-align:-1px;margin-right:6px}@keyframes s{to{transform:rotate(360deg)}}'
   ].join('');
 
@@ -643,7 +591,6 @@
     var detail = S.busy ? '<span class="spin"></span>Chargement de la note…'
       : !S.reportId ? 'Pas encore de note pour ce mois'
       : esc(S.reportRefLabel) + ' · ' + linesOf(S.report).length + ' ligne(s) · ' + euro(linesOf(S.report).reduce(function (s, l) { return s + (num(l.amountIncludingTax) || 0); }, 0));
-    var loadingFirst = S.busy && !S.types.length;
     var typeOptions = S.types.map(function (t) { return '<option value="' + esc(t.reference) + '"' + (t.reference === prefs.type ? ' selected' : '') + '>' + esc(t.label) + '</option>'; }).join('');
     var impOptions = S.imputations.map(function (i) { return '<option value="' + esc(i.key) + '"' + (i.key === prefs.imputation ? ' selected' : '') + '>' + esc(i.label) + '</option>'; }).join('');
     var thumbs = S.items.map(function (it) {
@@ -656,8 +603,8 @@
       monthLabel(S.term) + '</b><span class="small">' + detail + '</span></div><button class="nav" data-act="next" aria-label="Mois suivant">›</button></div>' +
       '<div style="text-align:center;padding-bottom:6px"><button class="link" data-act="refresh">Actualiser</button></div></div>' +
       '<div class="label">Règles du lot</div><div class="card">' +
-      '<div class="row"><div class="grow"><div class="small">Type de frais</div>' + (loadingFirst ? '<span class="sk" style="width:60%;margin-top:6px"></span>' : '<select data-field="type">' + (typeOptions || '<option>Aucun type trouvé</option>') + '</select>') + '</div><span class="small">▾</span></div>' +
-      '<div class="row"><div class="grow"><div class="small">Projet / prestation</div>' + (loadingFirst ? '<span class="sk" style="width:80%;margin-top:6px"></span>' : '<select data-field="imputation">' + (impOptions || '<option>Aucun projet trouvé</option>') + '</select>') + '</div><span class="small">▾</span></div>' +
+      '<div class="row"><div class="grow"><div class="small">Type de frais</div><select data-field="type">' + (typeOptions || '<option>Aucun type trouvé</option>') + '</select></div><span class="small">▾</span></div>' +
+      '<div class="row"><div class="grow"><div class="small">Projet / prestation</div><select data-field="imputation">' + (impOptions || '<option>Aucun projet trouvé</option>') + '</select></div><span class="small">▾</span></div>' +
       '<div class="row"><div class="grow"><div>Plafonner à ' + euro(prefs.capAmount) + '</div><div class="small">Un ticket plus cher est saisi à ' + euro(prefs.capAmount) + ' TTC</div></div><label class="switch"><input type="checkbox" data-field="cap"' + (prefs.cap ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row"><div class="grow"><div>Mode simulation</div><div class="small">Lit les tickets et prépare les lignes sans les enregistrer</div></div><label class="switch"><input type="checkbox" data-field="simulation"' + (prefs.simulation ? ' checked' : '') + '><span></span></label></div>' +
       '</div>' +
@@ -713,15 +660,9 @@
   function render() {
     if (S.waiting) {
       if (root.getElementById('login-frame')) return; // ne pas recharger une connexion en cours
-      root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column;overflow:hidden">' +
-        '<div class="wrap" style="padding-bottom:12px;width:100%"><div class="welcome">' + logo(44) +
-          '<div class="grow"><b>NDF Express</b><span>Connecte-toi à Boond : l\'app s\'ouvre juste après.</span></div>' +
-          '<button class="icon" data-act="close" aria-label="Fermer" style="font-size:22px">✕</button></div></div>' +
-        '<div style="position:relative;flex:1;min-height:0;overflow:hidden;border-top:1px solid var(--line)">' +
-        // iPhone : un cadre s'élargit à la taille de son contenu et dézoome toute la page.
-        // width:1px + min-width:100% le garde à la largeur de l'écran.
-        '<iframe id="login-frame" src="/login" title="Connexion à Boond" scrolling="yes" style="position:absolute;top:0;left:0;width:1px;min-width:100%;max-width:100%;height:100%;border:0;background:#fff;opacity:0;transition:opacity .25s"></iframe>' +
-        '<div class="loading" id="login-loading">' + logo(52) + '<span>Ouverture de la connexion Boond…</span></div></div>' +
+      root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column">' +
+        '<div class="wrap" style="padding-bottom:10px;width:100%">' + header('Connexion à Boond', 'Connecte-toi ici : NDF Express s\'ouvre juste après.') + '</div>' +
+        '<iframe id="login-frame" src="/login" title="Connexion à Boond" style="flex:1;width:100%;border:0;border-top:1px solid var(--line);background:#fff"></iframe>' +
         '<p class="small" style="margin:0;padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line)">' +
         'Connexion Google ou Microsoft ? Elle ne s\'affiche pas ici : ferme (✕), connecte-toi sur Boond, puis touche à nouveau le signet.</p></div>';
       return;
@@ -799,7 +740,6 @@
   window.__ndfExpress = {
     show: function () {
       host.style.display = '';
-      enter(host);
       if (loggedIn()) { if (S.waiting) { openApp(); return; } }
       else if (!csrfToken() || !S.user) { waitForLogin(); return; }
       // Signet touché à nouveau après une connexion : on charge tout.
@@ -808,5 +748,4 @@
   };
 
   if (loggedIn()) { render(); refresh(); } else waitForLogin();
-  enter(host);
 })();
