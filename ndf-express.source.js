@@ -589,7 +589,7 @@
     '.edit{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap}.edit input{flex:1;min-width:120px;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}',
     '.done{text-align:center;padding-top:60px}.check{width:84px;height:84px;border-radius:50%;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}',
     'textarea{width:100%;height:300px;font:11px/1.4 ui-monospace,Menlo,monospace;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}',
-    '.top .logo{flex:none;margin-right:2px}',
+    '.welcome{display:flex;align-items:center;gap:12px}.welcome .logo{flex:none}.welcome b{display:block;font-size:20px;font-weight:600;letter-spacing:-.3px}.welcome span{display:block;font-size:13px;color:var(--muted)}',
     '.sk{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--line) 0%,var(--bg) 50%,var(--line) 100%);background-size:200% 100%;animation:sh 1.1s linear infinite}@keyframes sh{to{background-position:-200% 0}}',
     '.loading{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:14px;background:var(--bg);color:var(--muted);font-size:14px;transition:opacity .25s}',
     '.loading .logo{animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{50%{transform:scale(.92);opacity:.75}}',
@@ -633,7 +633,7 @@
   }
 
   function header(title, subtitle, back) {
-    return '<div class="top">' + (back ? '<button class="icon" data-act="' + back + '" aria-label="Retour" style="font-size:22px;color:var(--text)">‹</button>' : logo(30)) +
+    return '<div class="top">' + (back ? '<button class="icon" data-act="' + back + '" aria-label="Retour" style="font-size:22px;color:var(--text)">‹</button>' : '') +
       '<h1>' + esc(title) + '</h1><button class="icon" data-act="diag">Détails</button><button class="icon" data-act="close" aria-label="Fermer" style="font-size:22px">✕</button></div>' +
       (subtitle ? '<p class="sub">' + esc(subtitle) + '</p>' : '');
   }
@@ -714,7 +714,9 @@
     if (S.waiting) {
       if (root.getElementById('login-frame')) return; // ne pas recharger une connexion en cours
       root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column">' +
-        '<div class="wrap" style="padding-bottom:10px;width:100%">' + header('Connexion à Boond', 'Connecte-toi ici : NDF Express s\'ouvre juste après.') + '</div>' +
+        '<div class="wrap" style="padding-bottom:12px;width:100%"><div class="welcome">' + logo(44) +
+          '<div class="grow"><b>NDF Express</b><span>Connecte-toi à Boond : l\'app s\'ouvre juste après.</span></div>' +
+          '<button class="icon" data-act="close" aria-label="Fermer" style="font-size:22px">✕</button></div></div>' +
         '<div style="position:relative;flex:1;display:flex;border-top:1px solid var(--line)">' +
         '<iframe id="login-frame" src="/login" title="Connexion à Boond" style="flex:1;width:100%;border:0;background:#fff;opacity:0;transition:opacity .25s"></iframe>' +
         '<div class="loading" id="login-loading">' + logo(52) + '<span>Ouverture de la connexion Boond…</span></div></div>' +
