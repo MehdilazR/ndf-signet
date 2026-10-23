@@ -500,7 +500,7 @@
 
   // ------------------------------------------------------------------ interface
 
-  var FULL = 'position:fixed;inset:0;z-index:2147483647;';
+  var FULL = 'position:fixed;inset:0;z-index:2147483647;max-width:100vw;overflow:hidden;';
   var waitTimer = null;
   var reloadOnClose = false;
   var host = document.createElement('div');
@@ -713,12 +713,14 @@
   function render() {
     if (S.waiting) {
       if (root.getElementById('login-frame')) return; // ne pas recharger une connexion en cours
-      root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column">' +
+      root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column;overflow:hidden">' +
         '<div class="wrap" style="padding-bottom:12px;width:100%"><div class="welcome">' + logo(44) +
           '<div class="grow"><b>NDF Express</b><span>Connecte-toi à Boond : l\'app s\'ouvre juste après.</span></div>' +
           '<button class="icon" data-act="close" aria-label="Fermer" style="font-size:22px">✕</button></div></div>' +
-        '<div style="position:relative;flex:1;display:flex;border-top:1px solid var(--line)">' +
-        '<iframe id="login-frame" src="/login" title="Connexion à Boond" style="flex:1;width:100%;border:0;background:#fff;opacity:0;transition:opacity .25s"></iframe>' +
+        '<div style="position:relative;flex:1;min-height:0;overflow:hidden;border-top:1px solid var(--line)">' +
+        // iPhone : un cadre s'élargit à la taille de son contenu et dézoome toute la page.
+        // width:1px + min-width:100% le garde à la largeur de l'écran.
+        '<iframe id="login-frame" src="/login" title="Connexion à Boond" scrolling="yes" style="position:absolute;top:0;left:0;width:1px;min-width:100%;max-width:100%;height:100%;border:0;background:#fff;opacity:0;transition:opacity .25s"></iframe>' +
         '<div class="loading" id="login-loading">' + logo(52) + '<span>Ouverture de la connexion Boond…</span></div></div>' +
         '<p class="small" style="margin:0;padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line)">' +
         'Connexion Google ou Microsoft ? Elle ne s\'affiche pas ici : ferme (✕), connecte-toi sur Boond, puis touche à nouveau le signet.</p></div>';
