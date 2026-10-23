@@ -18,7 +18,8 @@
   function reduceMotion() { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; } }
   function enter(el) {
     if (!el || reduceMotion() || !el.animate) return;
-    el.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' });
+    var a = el.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' });
+    setTimeout(function () { try { a.finish(); } catch (e) {} }, 400); // jamais bloqué à mi-chemin
   }
   var POPUP_CSS = ':host{all:initial}*{box-sizing:border-box}' +
     '.bg{--card:#fff;--text:#14151A;--muted:#686C78;--accent:#3B4BDB;--on-accent:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,12,20,.5);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
