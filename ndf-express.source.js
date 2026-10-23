@@ -8,6 +8,17 @@
   'use strict';
 
   var BASE = 'https://ui.boondmanager.com';
+  // Safari dézoome les pages prévues pour ordinateur : tout ce qu'on dessine dedans rétrécit.
+  // On agrandit la fenêtre d'autant, pour qu'elle garde la taille d'un écran de téléphone.
+  function fitToScreen(el) {
+    function apply() {
+      var vv = window.visualViewport;
+      var f = vv && vv.scale ? Math.max(1, 1 / vv.scale) : 1;
+      el.style.zoom = f > 1.05 ? String(f) : '';
+    }
+    apply();
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', apply);
+  }
   var POPUP_CSS = ':host{all:initial}*{box-sizing:border-box}' +
     '.bg{--card:#fff;--text:#14151A;--muted:#686C78;--accent:#3B4BDB;--on-accent:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,12,20,.5);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
     '@media (prefers-color-scheme:dark){.bg{--card:#17191F;--text:#ECEDF2;--muted:#9A9EAB;--accent:#9AA4FF;--on-accent:#0C0F24}}' +
@@ -24,6 +35,7 @@
       '<ol><li>Touche <b>Ouvrir Boond</b> et connecte-toi.</li><li>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</li></ol>' +
       '<button class="go" id="go">Ouvrir Boond</button><button class="no" id="no">Annuler</button></div></div>';
     document.body.appendChild(gate);
+    fitToScreen(groot.querySelector('.card'));
     groot.getElementById('go').addEventListener('click', function () { location.href = BASE + '/dashboard'; });
     groot.getElementById('no').addEventListener('click', function () { gate.remove(); });
     return;
@@ -653,6 +665,7 @@
         '<ol><li>Connecte-toi comme d\'habitude (e-mail et mot de passe, Google ou Microsoft).</li>' +
         '<li>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</li></ol>' +
         '<button class="go" data-act="close">OK, je me connecte</button></div></div>';
+      fitToScreen(root.querySelector('.card'));
       return;
     }
     var view = S.showDiag ? viewDiag()
