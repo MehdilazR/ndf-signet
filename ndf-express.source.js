@@ -8,36 +8,10 @@
   'use strict';
 
   var BASE = 'https://ui.boondmanager.com';
-  // Safari dézoome les pages prévues pour ordinateur : tout ce qu'on dessine dedans rétrécit.
-  // On agrandit la fenêtre d'autant, pour qu'elle garde la taille d'un écran de téléphone.
-  function fitToScreen(el) {
-    function apply() {
-      var vv = window.visualViewport;
-      var f = vv && vv.scale ? Math.max(1, 1 / vv.scale) : 1;
-      el.style.zoom = f > 1.05 ? String(f) : '';
-    }
-    apply();
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', apply);
-  }
-  var POPUP_CSS = ':host{all:initial}*{box-sizing:border-box}' +
-    '.bg{--card:#fff;--text:#14151A;--muted:#686C78;--accent:#3B4BDB;--on-accent:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,12,20,.5);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
-    '@media (prefers-color-scheme:dark){.bg{--card:#17191F;--text:#ECEDF2;--muted:#9A9EAB;--accent:#9AA4FF;--on-accent:#0C0F24}}' +
-    '.card{width:100%;max-width:360px;background:var(--card);color:var(--text);border-radius:20px;padding:22px 20px 14px;display:grid;gap:10px;box-shadow:0 20px 50px rgba(0,0,0,.3)}' +
-    '.t{font-size:19px;letter-spacing:-.2px}p{margin:0;color:var(--muted)}ol{margin:2px 0 4px;padding-left:20px;display:grid;gap:6px}' +
-    '.go{border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font:600 16px/1 inherit;padding:15px;cursor:pointer}' +
-    '.no{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:8px;cursor:pointer}';
   if (location.origin !== BASE) {
-    var gate = document.createElement('div');
-    gate.style.cssText = 'position:fixed;inset:0;z-index:2147483647;';
-    var groot = gate.attachShadow({ mode: 'open' });
-    groot.innerHTML = '<style>' + POPUP_CSS + '</style><div class="bg"><div class="card">' +
-      '<b class="t">NDF Express</b><p>NDF Express s\'ouvre sur Boond, une fois connecté.</p>' +
-      '<ol><li>Touche <b>Ouvrir Boond</b> et connecte-toi.</li><li>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</li></ol>' +
-      '<button class="go" id="go">Ouvrir Boond</button><button class="no" id="no">Annuler</button></div></div>';
-    document.body.appendChild(gate);
-    fitToScreen(groot.querySelector('.card'));
-    groot.getElementById('go').addEventListener('click', function () { location.href = BASE + '/dashboard'; });
-    groot.getElementById('no').addEventListener('click', function () { gate.remove(); });
+    if (confirm('NDF Express fonctionne sur Boond.\nOuvrir Boond maintenant ? Touche ensuite à nouveau le signet.')) {
+      location.href = BASE + '/dashboard';
+    }
     return;
   }
   if (window.__ndfExpress) { window.__ndfExpress.show(); return; }
@@ -395,10 +369,7 @@
         prefs.type = t ? t.reference : null;
       }
       S.items.forEach(evaluate);
-    } catch (e) {
-      if (e.status === 401) { waitForLogin(); return; }
-      S.error = e.message;
-    }
+    } catch (e) { S.error = e.message; }
     S.busy = false; render();
   }
 
@@ -483,38 +454,18 @@
 
   // ------------------------------------------------------------------ interface
 
-  var FULL = 'position:fixed;inset:0;z-index:2147483647;';
-  var waitTimer = null;
   var host = document.createElement('div');
   host.id = 'ndf-express-host';
-  host.style.cssText = FULL;
-
-  function loggedIn() { return !!csrfToken() && location.pathname.indexOf('/login') !== 0; }
-
-  // Pas (ou plus) connecté : message « connecte-toi puis relance le signet ».
-  // Si la page reste ouverte pendant la connexion, l'app s'ouvre quand même toute seule.
-  function openApp() {
-    if (waitTimer) { clearInterval(waitTimer); waitTimer = null; }
-    S.waiting = false; S.error = null;
-    host.style.cssText = FULL; render(); refresh();
-  }
-  function waitForLogin() {
-    S.waiting = true; S.user = null; S.error = null; S.busy = false;
-    host.style.cssText = FULL; render();
-    if (waitTimer) return;
-    waitTimer = setInterval(function () { if (loggedIn()) openApp(); }, 1500);
-  }
+  host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;';
   var root = host.attachShadow({ mode: 'open' });
   document.body.appendChild(host);
 
   var CSS = [
     ':host{all:initial}',
     '*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}',
-    '.app,.bw{--bg:#F4F5F7;--card:#FFFFFF;--line:#E7E8EC;--text:#14151A;--muted:#686C78;--accent:#3B4BDB;--on-accent:#fff;--tint:#E5E8FF;--on-tint:#111650;--ok:#1F9D5B;--warn:#B7791F;--err:#D63B3B;--neutral:#8A8F9C;',
+    '.app{--bg:#F4F5F7;--card:#FFFFFF;--line:#E7E8EC;--text:#14151A;--muted:#686C78;--accent:#3B4BDB;--on-accent:#fff;--tint:#E5E8FF;--on-tint:#111650;--ok:#1F9D5B;--warn:#B7791F;--err:#D63B3B;--neutral:#8A8F9C;',
     'position:absolute;inset:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow-y:auto;-webkit-overflow-scrolling:touch}',
-    '@media (prefers-color-scheme:dark){.app,.bw{--bg:#0D0E12;--card:#17191F;--line:#22252D;--text:#ECEDF2;--muted:#9A9EAB;--accent:#9AA4FF;--on-accent:#0C0F24;--tint:#242A55;--on-tint:#DDE1FF;--ok:#2FBF71;--warn:#E0A030;--err:#FF7A7A}}',
-    '.bw{position:static;inset:auto;background:transparent;overflow:visible;padding:0 12px calc(env(safe-area-inset-bottom) + 12px)}',
-    '.banner{display:flex;align-items:center;gap:12px;max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.18)}',
+    '@media (prefers-color-scheme:dark){.app{--bg:#0D0E12;--card:#17191F;--line:#22252D;--text:#ECEDF2;--muted:#9A9EAB;--accent:#9AA4FF;--on-accent:#0C0F24;--tint:#242A55;--on-tint:#DDE1FF;--ok:#2FBF71;--warn:#E0A030;--err:#FF7A7A}}',
     '.wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 110px)}',
     '.top{display:flex;align-items:center;gap:8px;margin-bottom:6px}.top h1{font-size:24px;font-weight:600;letter-spacing:-.3px;margin:0;flex:1}',
     '.sub{color:var(--muted);font-size:13px;margin:0}',
@@ -659,15 +610,6 @@
   }
 
   function render() {
-    if (S.waiting) {
-      root.innerHTML = '<style>' + POPUP_CSS + '</style><div class="bg"><div class="card">' +
-        '<b class="t">Connecte-toi d\'abord à Boond</b>' +
-        '<ol><li>Connecte-toi comme d\'habitude (e-mail et mot de passe, Google ou Microsoft).</li>' +
-        '<li>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</li></ol>' +
-        '<button class="go" data-act="close">OK, je me connecte</button></div></div>';
-      fitToScreen(root.querySelector('.card'));
-      return;
-    }
     var view = S.showDiag ? viewDiag()
       : S.screen === 'processing' ? viewProcessing()
       : S.screen === 'review' ? viewReview()
@@ -687,9 +629,7 @@
     var id = parseInt(el.getAttribute('data-id'), 10);
     var item = S.items.filter(function (i) { return i.id === id; })[0];
     switch (act) {
-      case 'close':
-        host.style.display = 'none';
-        break;
+      case 'close': host.style.display = 'none'; break;
       case 'diag': S.showDiag = true; render(); break;
       case 'hide-diag': S.showDiag = false; render(); break;
       case 'copy':
@@ -739,12 +679,16 @@
   window.__ndfExpress = {
     show: function () {
       host.style.display = '';
-      if (!loggedIn()) { waitForLogin(); return; }
-      if (S.waiting) { openApp(); return; }
       // Signet touché à nouveau après une connexion : on charge tout.
-      if (!S.user) { S.error = null; refresh(); } else render();
+      if (!S.user && csrfToken()) { S.error = null; refresh(); } else render();
     }
   };
 
-  if (loggedIn()) { render(); refresh(); } else waitForLogin();
+  render();
+  if (!csrfToken()) {
+    S.error = 'Tu n\'es pas connecté à Boond : ferme NDF Express (✕), connecte-toi, puis touche à nouveau le signet.';
+    render();
+  } else {
+    refresh();
+  }
 })();
