@@ -473,14 +473,21 @@
 
   var FULL = 'position:fixed;inset:0;z-index:2147483647;';
   var waitTimer = null;
+  var reloadOnClose = false;
   var host = document.createElement('div');
   host.id = 'ndf-express-host';
   host.style.cssText = FULL;
 
   function loggedIn() { return !!csrfToken() && location.pathname.indexOf('/login') !== 0; }
 
-  // Pas (ou plus) connecté : message « connecte-toi puis relance le signet ».
-  // Si la page reste ouverte pendant la connexion, l'app s'ouvre quand même toute seule.
+  // Pas (ou plus) connecté : la connexion Boond s'affiche DANS NDF Express,
+  // puis l'app s'ouvre toute seule dès que la connexion est faite.
+  function frameIsLoggedIn() {
+    var frame = root.getElementById('login-frame');
+    var path = '';
+    try { path = frame.contentWindow.location.pathname; } catch (e) {}
+    return path.charAt(0) === '/' && path.indexOf('/login') !== 0;
+  }
   function openApp() {
     if (waitTimer) { clearInterval(waitTimer); waitTimer = null; }
     S.waiting = false; S.error = null;
@@ -490,7 +497,11 @@
     S.waiting = true; S.user = null; S.error = null; S.busy = false;
     host.style.cssText = FULL; render();
     if (waitTimer) return;
-    waitTimer = setInterval(function () { if (loggedIn()) openApp(); }, 1500);
+    waitTimer = setInterval(function () {
+      if (!csrfToken()) return;
+      if (frameIsLoggedIn()) { reloadOnClose = true; openApp(); }
+      else if (loggedIn()) openApp();
+    }, 1000);
   }
   var root = host.attachShadow({ mode: 'open' });
   document.body.appendChild(host);
@@ -648,11 +659,12 @@
 
   function render() {
     if (S.waiting) {
-      root.innerHTML = '<style>' + POPUP_CSS + '</style><div class="bg"><div class="card">' +
-        '<b class="t">Connecte-toi d\'abord à Boond</b>' +
-        '<ol><li>Connecte-toi comme d\'habitude (e-mail et mot de passe, Google ou Microsoft).</li>' +
-        '<li>Touche à nouveau le signet <b>NDF Express</b> : l\'app s\'ouvre.</li></ol>' +
-        '<button class="go" data-act="close">OK, je me connecte</button></div></div>';
+      if (root.getElementById('login-frame')) return; // ne pas recharger une connexion en cours
+      root.innerHTML = '<style>' + CSS + '</style><div class="app" style="display:flex;flex-direction:column">' +
+        '<div class="wrap" style="padding-bottom:10px;width:100%">' + header('Connexion à Boond', 'Connecte-toi ici : NDF Express s\'ouvre juste après.') + '</div>' +
+        '<iframe id="login-frame" src="/login" title="Connexion à Boond" style="flex:1;width:100%;border:0;border-top:1px solid var(--line);background:#fff"></iframe>' +
+        '<p class="small" style="margin:0;padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--line)">' +
+        'Connexion Google ou Microsoft ? Elle ne s\'affiche pas ici : ferme (✕), connecte-toi sur Boond, puis touche à nouveau le signet.</p></div>';
       return;
     }
     var view = S.showDiag ? viewDiag()
@@ -675,7 +687,9 @@
     var item = S.items.filter(function (i) { return i.id === id; })[0];
     switch (act) {
       case 'close':
+        if (S.waiting) { if (waitTimer) { clearInterval(waitTimer); waitTimer = null; } S.waiting = false; root.innerHTML = ''; }
         host.style.display = 'none';
+        if (reloadOnClose) location.href = BASE + '/dashboard'; // Boond derrière était resté sur la connexion
         break;
       case 'diag': S.showDiag = true; render(); break;
       case 'hide-diag': S.showDiag = false; render(); break;
@@ -726,8 +740,8 @@
   window.__ndfExpress = {
     show: function () {
       host.style.display = '';
-      if (!loggedIn()) { waitForLogin(); return; }
-      if (S.waiting) { openApp(); return; }
+      if (loggedIn()) { if (S.waiting) { openApp(); return; } }
+      else if (!csrfToken() || !S.user) { waitForLogin(); return; }
       // Signet touché à nouveau après une connexion : on charge tout.
       if (!S.user) { S.error = null; refresh(); } else render();
     }
